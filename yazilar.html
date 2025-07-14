@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yazılar - Gelmemeyegiden Kitap Kurdu</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #f8e1ff 0%, #ffffff 50%, #e1c9ff 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Üst navigasyon */
+        .top-nav {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(147, 51, 234, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #9333ea;
+            text-decoration: none;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #9333ea, #ec4899);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #9333ea;
+            border: 2px solid #9333ea;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+        }
+
+        /* Ana başlık */
+        .page-header {
+            background: linear-gradient(135deg, #9333ea, #ec4899);
+            color: white;
+            text-align: center;
+            padding: 3rem 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .page-description {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Admin kontrolleri */
+        .admin-controls {
+            background: white;
+            padding: 1.5rem;
+            margin: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(147, 51, 234, 0.1);
+            border: 2px solid #e1c9ff;
+            display: none;
+        }
+
+        .admin-controls.show {
+            display: block;
+        }
+
+        .admin-controls h3 {
+            color: #9333ea;
+            margin-bottom: 1rem;
+        }
+
+        /* Ana içerik */
+        .main-content {
+            background: white;
+            margin: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(147, 51, 234, 0.15);
+            overflow: hidden;
+            padding: 2rem;
+        }
+
+        /* Yazı kartları */
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .post-card {
+            background: linear-gradient(135deg, #f8e1ff 0%, #ffffff 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 2px solid #e1c9ff;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Draft Badge */
+        .draft-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(147, 51, 234, 0.2);
+            border-color: #9333ea;
+        }
+
+        .post-title {
+            color: #9333ea;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .post-content {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e1c9ff;
+        }
+
+        .post-date {
+            color: #9333ea;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .post-author {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .post-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        /* Admin butonları */
+        .admin-actions {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: none;
+            gap: 0.5rem;
+        }
+
+        .admin-actions.show {
+            display: flex;
+        }
+
+        .admin-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Modal stilleri */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* Yazı detay modal için özel stil */
+        #postDetailModal .modal-content {
+            max-width: 800px;
+            max-height: 90vh;
+            line-height: 1.8;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #9333ea;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #9333ea;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1c9ff;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #9333ea;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* Boş durum */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            color: #9333ea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .posts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                margin: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #9333ea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Üst Navigasyon -->
+    <nav class="top-nav">
+        <a href="index.html" class="logo">📚 Kitap Kurdu</a>
+        <div class="auth-buttons" id="authButtons">
+            <a href="index.html" class="btn btn-secondary">Ana Sayfa</a>
+            <a href="#" class="btn btn-primary" onclick="openModal('adminModal')">Admin Girişi</a>
+        </div>
+    </nav>
+
+    <!-- Sayfa Başlığı -->
+    <header class="page-header">
+        <h1 class="page-title">📝 Yazılar</h1>
+        <p class="page-description">Kitap incelemeleri, edebiyat yazıları ve okuma deneyimlerim</p>
+    </header>
+
+    <!-- Admin Kontrolleri -->
+    <div class="admin-controls" id="adminControls">
+        <h3>Admin Kontrolleri</h3>
+        <button class="btn btn-primary" onclick="openModal('addPostModal')">
+            ➕ Yeni Yazı Ekle
+        </button>
+    </div>
+
+    <!-- Ana İçerik -->
+    <main class="main-content">
+        <div id="loadingSpinner" class="spinner"></div>
+        <div class="posts-grid" id="postsGrid">
+            <!-- Yazılar dinamik olarak yüklenecek -->
+        </div>
+        
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <h3>Henüz yazı bulunmuyor</h3>
+            <p>İlk yazıyı eklemek için admin girişi yapın.</p>
+        </div>
+    </main>
+
+    <!-- Admin Giriş Modalı -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('adminModal')">&times;</span>
+            <h2 style="color: #9333ea; margin-bottom: 1.5rem;">Admin Girişi</h2>
+            <form id="adminForm">
+                <div class="form-group">
+                    <label>Admin E-mail:</label>
+                    <input type="email" id="adminEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Admin Şifre:</label>
+                    <input type="password" id="adminPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Admin Girişi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Yazı Detay Modalı -->
+    <div id="postDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeModal('postDetailModal')">&times;</span>
+            <div id="postDetailContent">
+                <!-- İçerik dinamik olarak yüklenecek -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Yazı Ekleme/Düzenleme Modalı -->
+    <div id="addPostModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addPostModal')">&times;</span>
+            <h2 id="modalTitle" style="color: #9333ea; margin-bottom: 1.5rem;">Yeni Yazı Ekle</h2>
+            <form id="postForm">
+                <div class="form-group">
+                    <label>Yazı Başlığı:</label>
+                    <input type="text" id="postTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Yazı İçeriği:</label>
+                    <textarea id="postContent" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Yazar:</label>
+                    <input type="text" id="postAuthor" value="Admin">
+                </div>
+                <div class="form-group">
+                    <label>Resim URL (İsteğe bağlı):</label>
+                    <input type="url" id="postImage">
+                </div>
+                
+                <!-- Durum Seçimi -->
+                <div class="form-group">
+                    <label>Yazı Durumu:</label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="status" value="draft" style="margin: 0;">
+                            📝 Taslak olarak kaydet
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="status" value="published" checked style="margin: 0;">
+                            ✅ Hemen yayınla
+                        </label>
+                    </div>
+                    <small style="color: #666; margin-top: 0.5rem; display: block;">
+                        Taslak olarak kaydedilen yazılar sadece admin tarafından görülebilir.
+                    </small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="submitBtn">Yazı Ekle</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="supabase-client.js"></script>
+    <script>
+        let currentEditingId = null;
+        let allPosts = [];
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                initializeSupabase();
+                await checkAdminStatus();
+                await loadPosts();
+            } catch (error) {
+                console.error('Başlatma hatası:', error);
+                hideSpinner();
+            }
+        });
+
+        // Admin durumunu kontrol et
+        async function checkAdminStatus() {
+            const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+            
+            if (isAdminLoggedIn) {
+                updateUIForAdmin();
+            }
+        }
+
+        // Admin UI güncellemesi
+        function updateUIForAdmin() {
+            const authButtons = document.getElementById('authButtons');
+            authButtons.innerHTML = `
+                <a href="index.html" class="btn btn-secondary">Ana Sayfa</a>
+                <a href="admin-panel.html" class="btn btn-primary">🔧 Admin Panel</a>
+                <a href="#" class="btn btn-secondary" onclick="logoutAdmin()">Çıkış Yap</a>
+            `;
+            
+            // Admin kontrollerini göster
+            document.getElementById('adminControls').classList.add('show');
+            
+            // Yazı kartlarındaki admin butonlarını göster
+            document.querySelectorAll('.admin-actions').forEach(actions => {
+                actions.classList.add('show');
+            });
+        }
+
+        // Yazıları yükle
+        async function loadPosts() {
+            try {
+                showSpinner();
+                // Admin kontrolü yap
+                const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+                
+                // Admin ise tüm yazıları (taslak dahil), normal kullanıcı ise sadece yayınlanmış olanları getir
+                allPosts = isAdminLoggedIn ? await getAllBlogPosts() : await getBlogPosts();
+                displayPosts(allPosts);
+                hideSpinner();
+            } catch (error) {
+                console.error('Yazıları yükleme hatası:', error);
+                hideSpinner();
+                showEmptyState();
+            }
+        }
+
+        // Yazıları göster
+        function displayPosts(posts) {
+            const postsGrid = document.getElementById('postsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (!posts || posts.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            postsGrid.innerHTML = '';
+            
+            posts.forEach(post => {
+                const postCard = createPostCard(post);
+                postsGrid.appendChild(postCard);
+            });
+        }
+
+        // Yazı kartı oluştur
+        function createPostCard(post) {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            
+            const formattedDate = new Date(post.created_at).toLocaleDateString('tr-TR');
+            const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+            
+            card.innerHTML = `
+                ${post.status === 'draft' ? '<div class="draft-badge">📝 Taslak</div>' : ''}
+                ${post.image_url ? `<img src="${post.image_url}" alt="${post.title}" class="post-image">` : ''}
+                <h3 class="post-title">${post.title}</h3>
+                <div class="post-content">${post.content.substring(0, 200)}${post.content.length > 200 ? '...' : ''}</div>
+                <div class="post-meta">
+                    <span class="post-date">${formattedDate}</span>
+                    <span class="post-author">👤 ${post.author}</span>
+                </div>
+                <div class="admin-actions ${isAdminLoggedIn ? 'show' : ''}">
+                    <button class="admin-btn edit-btn" onclick="editPost('${post.id}')">Düzenle</button>
+                    <button class="admin-btn delete-btn" onclick="deletePost('${post.id}')">Sil</button>
+                </div>
+            `;
+            
+            // Yazıya tıklayınca tam içeriği göster
+            card.addEventListener('click', function(e) {
+                // Admin butonlarına tıklanmadıysa
+                if (!e.target.classList.contains('admin-btn')) {
+                    openPostModal(post);
+                }
+            });
+            
+            return card;
+        }
+
+        // Yazı detay modal'ını aç
+        function openPostModal(post) {
+            const modal = document.getElementById('postDetailModal');
+            const content = document.getElementById('postDetailContent');
+            
+            let imageHtml = '';
+            if (post.image_url) {
+                imageHtml = `<img src="${post.image_url}" alt="${post.title}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 10px; margin-bottom: 1.5rem;">`;
+            }
+            
+            // Tarih formatı
+            const date = new Date(post.created_at);
+            const formattedDate = date.toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Draft badge
+            let draftBadge = '';
+            if (post.status === 'draft') {
+                draftBadge = '<div style="background: #ff9800; color: white; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin-bottom: 1rem; font-size: 0.9rem;">📝 Taslak</div>';
+            }
+            
+            content.innerHTML = `
+                ${draftBadge}
+                ${imageHtml}
+                <h1 style="color: #9333ea; margin-bottom: 1rem; font-size: 2rem;">${post.title}</h1>
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; color: #666; border-bottom: 1px solid #e1c9ff; padding-bottom: 1rem;">
+                    <span>👤 ${post.author}</span>
+                    <span>📅 ${formattedDate}</span>
+                </div>
+                <div style="line-height: 1.8; color: #333; font-size: 1.1rem; white-space: pre-wrap; word-wrap: break-word; max-width: 100%;">${post.content}</div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        // Admin giriş işlemi
+        document.getElementById('adminForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            try {
+                const loginResult = await loginAsAdmin(email, password);
+                
+                if (loginResult.success) {
+                    alert('Admin girişi başarılı!');
+                    closeModal('adminModal');
+                    updateUIForAdmin();
+                } else {
+                    alert('Hatalı admin bilgileri!');
+                }
+            } catch (error) {
+                alert('Giriş yapılırken bir hata oluştu: ' + error.message);
+            }
+        });
+
+        // Yazı ekleme/düzenleme işlemi
+        document.getElementById('postForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+            const author = document.getElementById('postAuthor').value;
+            const image_url = document.getElementById('postImage').value;
+            
+            // Durum seçimini al
+            const statusRadio = document.querySelector('input[name="status"]:checked');
+            const status = statusRadio ? statusRadio.value : 'published';
+            
+            const postData = {
+                title,
+                content,
+                author,
+                image_url: image_url || null,
+                status: status
+            };
+            
+            try {
+                if (currentEditingId) {
+                    // Düzenleme
+                    await updateBlogPost(currentEditingId, postData);
+                    alert('Yazı başarıyla güncellendi!');
+                } else {
+                    // Yeni ekleme
+                    await addBlogPost(postData);
+                    const statusMessage = status === 'draft' ? 'taslak olarak kaydedildi' : 'yayınlandı';
+                    alert(`Yazı başarıyla ${statusMessage}!`);
+                }
+                
+                closeModal('addPostModal');
+                resetForm();
+                await loadPosts();
+            } catch (error) {
+                alert('İşlem sırasında bir hata oluştu: ' + error.message);
+            }
+        });
+
+        // Yazı düzenleme
+        function editPost(id) {
+            const post = allPosts.find(p => p.id === id);
+            if (!post) return;
+            
+            currentEditingId = id;
+            document.getElementById('modalTitle').textContent = 'Yazı Düzenle';
+            document.getElementById('submitBtn').textContent = 'Yazı Güncelle';
+            
+            document.getElementById('postTitle').value = post.title;
+            document.getElementById('postContent').value = post.content;
+            document.getElementById('postAuthor').value = post.author;
+            document.getElementById('postImage').value = post.image_url || '';
+            
+            openModal('addPostModal');
+        }
+
+        // Yazı silme
+        async function deletePost(id) {
+            if (!confirm('Bu yazıyı silmek istediğinizden emin misiniz?')) return;
+            
+            try {
+                await deleteBlogPost(id);
+                alert('Yazı başarıyla silindi!');
+                await loadPosts();
+            } catch (error) {
+                alert('Yazı silinirken bir hata oluştu: ' + error.message);
+            }
+        }
+
+        // Form sıfırlama
+        function resetForm() {
+            currentEditingId = null;
+            document.getElementById('modalTitle').textContent = 'Yeni Yazı Ekle';
+            document.getElementById('submitBtn').textContent = 'Yazı Ekle';
+            document.getElementById('postForm').reset();
+        }
+
+        // Admin çıkış
+        async function logoutAdmin() {
+            try {
+                await logout();
+                location.reload();
+            } catch (error) {
+                console.error('Çıkış yapma hatası:', error);
+                localStorage.removeItem('isAdminLoggedIn');
+                localStorage.removeItem('adminEmail');
+                location.reload();
+            }
+        }
+
+        // Modal işlemleri
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            if (modalId === 'addPostModal') {
+                resetForm();
+            }
+        }
+
+        // Modal dışına tıklanınca kapanma
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                if (event.target.id === 'addPostModal') {
+                    resetForm();
+                }
+            }
+        }
+
+        // Yardımcı fonksiyonlar
+        function showSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('postsGrid').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('postsGrid').style.display = 'grid';
+        }
+
+        function showEmptyState() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('postsGrid').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
