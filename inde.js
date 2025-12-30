@@ -2,8 +2,9 @@ import supabase from '../lib/supabaseClient'
 
 export async function getStaticProps() {
   const { data, error } = await supabase
-    .from('interviews') // veya blog_posts, yazilar vs.
-    .select('*')
+  .from('blog_posts')
+  .select('id, title, content')
+  .order('created_at', { ascending: false })
 
   return {
     props: {
