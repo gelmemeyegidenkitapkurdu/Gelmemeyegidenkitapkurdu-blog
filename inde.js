@@ -1,15 +1,13 @@
 import supabase from '../lib/supabaseClient'
 
-export async function getStaticProps() {
-  const { data, error } = await supabase
-  .from("blog_posts")
-  .select('id, title, content')
-  .order('created_at', { ascending: false })
+export async function getServerSideProps() {
+  const { data } = await supabase
+    .from('blog_posts')
+    .select('id, title, content')
 
   return {
     props: {
       items: data || [],
     },
-    revalidate: 60,
   }
 }
