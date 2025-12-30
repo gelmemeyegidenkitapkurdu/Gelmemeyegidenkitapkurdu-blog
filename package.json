@@ -2,7 +2,7 @@
   "name": "gelmemeyegidenkitapkurdu",
   "private": true,
   "scripts": {
-    "build": "npx next build && npx next export"
+    "build": "next build && next export"
   },
   "dependencies": {
     "next": "14.0.4",
