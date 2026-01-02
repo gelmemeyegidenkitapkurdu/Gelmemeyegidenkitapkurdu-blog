@@ -3,7 +3,7 @@ import supabase from "../lib/supabase-client";
 
 export default function Home() {
   const [posts, setPosts] = useState([]);
-
+  
   useEffect(() => {
     fetchPosts();
   }, []);
