@@ -1,1 +1,1 @@
-# Gelmemeyegidenkitapkurdu-blog 
+# Gelmemeyegidenkitapkurdu-blog
